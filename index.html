@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chemistry Pixel Art Quiz</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet">
+  <style>
+    body {
+      box-sizing: border-box;
+      font-family: 'Poppins', sans-serif;
+    }
+    .mono-font {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .pixel {
+      width: 100%;
+      height: 100%;
+      transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      border-radius: 2px;
+    }
+    .pixel.revealed {
+      animation: pixelReveal 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+    @keyframes pixelReveal {
+      0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+      50% { transform: scale(1.4) rotate(90deg); }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+    .bubble-float {
+      animation: bubbleFloat 2s ease-in-out infinite;
+    }
+    @keyframes bubbleFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    .slide-in-left {
+      animation: slideInLeft 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes slideInLeft {
+      from { transform: translateX(-50px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    .slide-in-right {
+      animation: slideInRight 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes slideInRight {
+      from { transform: translateX(50px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    .option-btn {
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .option-btn:hover:not(:disabled) {
+      transform: translateX(10px) scale(1.02);
+    }
+    .option-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      transition: left 0.5s;
+    }
+    .option-btn:hover:not(:disabled)::before {
+      left: 100%;
+    }
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(12px);
+      border: 3px solid rgba(249, 115, 22, 0.3);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    }
+    .progress-glow {
+      box-shadow: 0 0 20px currentColor;
+    }
+    .celebration-bounce {
+      animation: celebrationBounce 1s ease-out;
+    }
+    @keyframes celebrationBounce {
+      0%, 100% { transform: scale(1) rotate(0deg); }
+      25% { transform: scale(1.15) rotate(-8deg); }
+      50% { transform: scale(1.1) rotate(8deg); }
+      75% { transform: scale(1.15) rotate(-4deg); }
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full">
+  <div id="app" class="h-full w-full overflow-auto" style="background: linear-gradient(135deg, #7c2d12 0%, #ea580c 30%, #f97316 70%, #fb923c 100%);">
+   <div class="min-h-full w-full flex flex-col items-center justify-center p-4 md:p-6"><!-- Header -->
+    <div class="text-center mb-6 slide-in-left">
+     <h1 id="quiz-title" class="text-4xl md:text-6xl font-black mb-3 text-white drop-shadow-2xl tracking-tight">🔥 Chemistry Pixel Quest</h1>
+     <p id="instruction-text" class="text-lg md:text-2xl text-white/95 font-bold drop-shadow-lg">Answer correctly to reveal the mystery lab equipment!</p>
+    </div><!-- Progress Section -->
+    <div class="w-full max-w-6xl mb-6 slide-in-right">
+     <div class="glass-panel rounded-3xl p-5 md:p-6">
+      <div class="flex items-center justify-between mb-3">
+       <div class="flex items-center gap-3"><span class="text-3xl bubble-float">🔬</span> <span class="text-orange-900 font-black text-base md:text-lg uppercase tracking-wider">Progress</span>
+       </div><span id="progress-text" class="mono-font text-orange-900 font-black text-xl md:text-2xl">0 / 20</span>
+      </div>
+      <div class="w-full bg-orange-200 rounded-full h-6 overflow-hidden shadow-inner">
+       <div id="progress-bar" class="bg-gradient-to-r from-orange-500 via-red-500 to-yellow-500 h-full rounded-full transition-all duration-700 ease-out progress-glow" style="width: 0%; box-shadow: 0 0 20px #f97316;"></div>
+      </div>
+     </div>
+    </div><!-- Main Content Grid -->
+    <div class="w-full max-w-7xl grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6"><!-- Pixel Art Display -->
+     <div class="slide-in-left order-2 xl:order-1" style="animation-delay: 0.1s;">
+      <div class="glass-panel rounded-3xl p-6 md:p-8">
+       <div class="flex items-center justify-center gap-3 mb-5"><span class="text-3xl">🧪</span>
+        <h2 class="text-2xl md:text-3xl font-black text-orange-900 text-center">MYSTERY IMAGE</h2><span class="text-3xl">⚗️</span>
+       </div>
+       <div id="pixel-canvas" class="grid gap-0.5 mx-auto max-w-2xl bg-gradient-to-br from-orange-100 to-yellow-100 p-3 md:p-4 rounded-3xl shadow-inner" style="aspect-ratio: 35/40;"><!-- Pixels generated by JS -->
+       </div>
+      </div>
+     </div><!-- Question Panel -->
+     <div class="slide-in-right order-1 xl:order-2" style="animation-delay: 0.2s;">
+      <div class="glass-panel rounded-3xl p-6 md:p-8 h-full flex flex-col">
+       <div class="mb-5">
+        <div class="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-full text-base font-black mb-4 shadow-lg"><span>QUESTION</span> <span id="current-question" class="text-2xl">1</span> <span>/ 20</span>
+        </div>
+        <h3 id="question-text" class="text-xl md:text-2xl font-bold text-orange-900 leading-relaxed"></h3>
+       </div>
+       <div id="options-container" class="space-y-3 flex-1 mb-4"><!-- Options generated by JS -->
+       </div>
+       <div id="feedback" class="text-center font-black text-3xl hidden mb-4"></div><button id="next-btn" class="hidden w-full bg-gradient-to-r from-orange-600 via-red-600 to-yellow-600 text-white font-black text-xl py-5 px-8 rounded-2xl hover:from-orange-700 hover:via-red-700 hover:to-yellow-700 transition-all transform hover:scale-105 shadow-xl"> NEXT QUESTION → </button>
+      </div>
+     </div>
+    </div><!-- Completion Modal -->
+    <div id="completion-modal" class="hidden fixed inset-0 bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 z-50">
+     <div class="glass-panel rounded-3xl p-10 md:p-16 max-w-3xl w-full text-center celebration-bounce">
+      <div class="text-9xl mb-6">
+       🎉🔥🎉
+      </div>
+      <h2 class="text-5xl md:text-6xl font-black text-orange-900 mb-5">MYSTERY REVEALED!</h2>
+      <p class="text-2xl md:text-3xl text-red-700 font-bold mb-10">Perfect chemistry! You completed all 20 questions!</p><button id="restart-btn" class="bg-gradient-to-r from-orange-600 via-red-600 to-yellow-600 text-white font-black text-2xl py-6 px-12 rounded-2xl hover:from-orange-700 hover:via-red-700 hover:to-yellow-700 transition-all transform hover:scale-110 shadow-2xl"> 🔄 TRY AGAIN </button>
+     </div>
+    </div>
+   </div>
+  </div>
+  <script>
+    // Bunsen Burner pixel art (35x40 for better visibility)
+    const bunsenBurnerArt = [
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,4,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,4,4,4,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,4,5,4,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,4,4,5,4,4,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,4,5,5,5,4,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,3,4,4,5,5,5,4,4,3,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,3,3,4,5,5,5,5,5,4,3,3,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,3,4,4,5,5,6,5,5,4,4,3,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,3,3,4,5,5,6,6,6,5,5,4,3,3,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,3,4,4,5,6,6,6,6,6,5,4,4,3,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,3,3,4,5,5,6,6,6,6,6,5,5,4,3,3,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,3,4,4,5,6,6,6,6,6,6,6,5,4,4,3,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,3,4,5,5,6,6,6,6,6,6,6,5,5,4,3,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,3,3,4,5,6,6,6,6,6,6,6,5,4,3,3,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,3,4,5,5,6,6,6,6,6,5,5,4,3,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,3,4,5,6,6,6,6,6,6,6,5,4,3,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+    ];
+
+    const colorMap = {
+      0: '#e5e7eb', // Hidden/background
+      1: '#475569', // Metal base/barrel (dark gray)
+      2: '#94a3b8', // Lighter metal parts
+      3: '#f97316', // Outer flame (orange)
+      4: '#fb923c', // Mid flame (light orange)
+      5: '#fbbf24', // Inner flame (yellow)
+      6: '#fef3c7'  // Hottest flame core (pale yellow)
+    };
+
+    // A-Level Organic Chemistry Questions
+    const questions = [
+      { q: "What mechanism occurs when ethene reacts with HBr?", options: ["Free radical substitution", "Electrophilic addition", "Nucleophilic substitution", "Elimination"], answer: 1 },
+      { q: "What reagent is used to test for alkenes?", options: ["Fehling's solution", "Bromine water", "Tollens' reagent", "Lucas reagent"], answer: 1 },
+      { q: "What is the major product when propene reacts with HBr (Markovnikov's rule)?", options: ["1-bromopropane", "2-bromopropane", "1,2-dibromopropane", "Propane"], answer: 1 },
+      { q: "What catalyst is used for dehydration of alcohols?", options: ["Concentrated H₂SO₄ or H₃PO₄", "NaOH", "KMnO₄", "Ni"], answer: 0 },
+      { q: "What is formed when a primary alcohol is fully oxidized?", options: ["Ketone", "Aldehyde", "Carboxylic acid", "Ester"], answer: 2 },
+      { q: "Which alkene shows geometric (cis-trans) isomerism?", options: ["Propene", "But-1-ene", "But-2-ene", "Ethene"], answer: 2 },
+      { q: "What reagent distinguishes aldehydes from ketones?", options: ["Bromine water", "Tollens' reagent", "Conc. H₂SO₄", "NaOH"], answer: 1 },
+      { q: "What is the hybridization of carbon atoms in ethene?", options: ["sp", "sp²", "sp³", "sp³d"], answer: 1 },
+      { q: "What reagent is used in ozonolysis of alkenes?", options: ["O₂", "O₃ followed by Zn/H₂O", "H₂O₂", "KMnO₄"], answer: 1 },
+      { q: "What catalyst is used in hydrogenation of alkenes?", options: ["H₃PO₄", "Ni, Pt, or Pd", "FeBr₃", "AlCl₃"], answer: 1 },
+      { q: "What initiates free radical halogenation of alkanes?", options: ["Heat only", "UV light or heat", "Catalyst only", "Acid"], answer: 1 },
+      { q: "Which type of alcohol is resistant to oxidation?", options: ["Primary", "Secondary", "Tertiary", "All oxidize equally"], answer: 2 },
+      { q: "What is the IUPAC name of CH₃COCH₃?", options: ["Propanal", "Propanone", "Propanoic acid", "Propan-2-ol"], answer: 1 },
+      { q: "What reagent is used for dehydrohalogenation of alkyl halides?", options: ["Aqueous acid", "Alcoholic KOH", "Cold water", "H₂SO₄"], answer: 1 },
+      { q: "When alkenes react with Br₂ in CCl₄, what product forms?", options: ["Bromoalkane", "Dibromoalkane", "Bromoalcohol", "No reaction"], answer: 1 },
+      { q: "What is the product when ethene undergoes hydration?", options: ["Ethane", "Ethanol", "Ethanal", "Ethanoic acid"], answer: 1 },
+      { q: "What type of isomerism exists between propan-1-ol and propan-2-ol?", options: ["Chain", "Position", "Functional group", "Geometric"], answer: 1 },
+      { q: "What mechanism occurs in anti-Markovnikov addition with peroxides?", options: ["Electrophilic addition", "Free radical addition", "Nucleophilic addition", "Elimination"], answer: 1 },
+      { q: "What products form from ozonolysis of alkenes?", options: ["Alcohols", "Aldehydes and/or ketones", "Carboxylic acids only", "Alkanes"], answer: 1 },
+      { q: "In complete combustion of alkanes, what are the products?", options: ["CO + H₂O", "CO₂ + H₂O", "C + H₂O", "CO₂ + H₂"], answer: 1 }
+    ];
+
+    // Default config
+    const defaultConfig = {
+      quiz_title: "🔥 Chemistry Pixel Quest",
+      instruction_text: "Answer correctly to reveal the mystery lab equipment!",
+      primary_color: "#f97316",
+      secondary_color: "#ef4444",
+      background_color: "#7c2d12",
+      text_color: "#7c2d12",
+      accent_color: "#fbbf24"
+    };
+
+    // Game state
+    let currentQuestionIndex = 0;
+    let correctAnswers = 0;
+    let revealedPixels = new Set();
+    let hiddenPixels = [];
+
+    // Initialize
+    function init() {
+      createPixelCanvas();
+      collectHiddenPixels();
+      displayQuestion();
+      
+      document.getElementById('next-btn').addEventListener('click', nextQuestion);
+      document.getElementById('restart-btn').addEventListener('click', restartQuiz);
+
+      if (window.elementSdk) {
+        window.elementSdk.init({
+          defaultConfig,
+          onConfigChange,
+          mapToCapabilities: (config) => ({
+            recolorables: [
+              {
+                get: () => config.primary_color || defaultConfig.primary_color,
+                set: (v) => { config.primary_color = v; window.elementSdk.setConfig({ primary_color: v }); }
+              },
+              {
+                get: () => config.secondary_color || defaultConfig.secondary_color,
+                set: (v) => { config.secondary_color = v; window.elementSdk.setConfig({ secondary_color: v }); }
+              },
+              {
+                get: () => config.background_color || defaultConfig.background_color,
+                set: (v) => { config.background_color = v; window.elementSdk.setConfig({ background_color: v }); }
+              },
+              {
+                get: () => config.text_color || defaultConfig.text_color,
+                set: (v) => { config.text_color = v; window.elementSdk.setConfig({ text_color: v }); }
+              },
+              {
+                get: () => config.accent_color || defaultConfig.accent_color,
+                set: (v) => { config.accent_color = v; window.elementSdk.setConfig({ accent_color: v }); }
+              }
+            ],
+            borderables: [],
+            fontEditable: undefined,
+            fontSizeable: undefined
+          }),
+          mapToEditPanelValues: (config) => new Map([
+            ['quiz_title', config.quiz_title || defaultConfig.quiz_title],
+            ['instruction_text', config.instruction_text || defaultConfig.instruction_text]
+          ])
+        });
+      }
+    }
+
+    // Config change handler
+    async function onConfigChange(config) {
+      document.getElementById('quiz-title').textContent = config.quiz_title || defaultConfig.quiz_title;
+      document.getElementById('instruction-text').textContent = config.instruction_text || defaultConfig.instruction_text;
+    }
+
+    // Create pixel canvas (35x40)
+    function createPixelCanvas() {
+      const canvas = document.getElementById('pixel-canvas');
+      canvas.style.gridTemplateColumns = `repeat(35, 1fr)`;
+      
+      for (let row = 0; row < 40; row++) {
+        for (let col = 0; col < 35; col++) {
+          const pixel = document.createElement('div');
+          pixel.className = 'pixel';
+          pixel.dataset.row = row;
+          pixel.dataset.col = col;
+          pixel.style.backgroundColor = '#cbd5e1';
+          pixel.innerHTML = '<div class="w-full h-full flex items-center justify-center text-[6px] text-gray-400 font-bold">?</div>';
+          canvas.appendChild(pixel);
+        }
+      }
+    }
+
+    // Collect non-background pixels
+    function collectHiddenPixels() {
+      for (let row = 0; row < 40; row++) {
+        for (let col = 0; col < 35; col++) {
+          if (bunsenBurnerArt[row][col] !== 0) {
+            hiddenPixels.push({ row, col, color: bunsenBurnerArt[row][col] });
+          }
+        }
+      }
+      // Shuffle for random reveal
+      hiddenPixels.sort(() => Math.random() - 0.5);
+    }
+
+    // Display question
+    function displayQuestion() {
+      if (currentQuestionIndex >= questions.length) {
+        showCompletion();
+        return;
+      }
+
+      const q = questions[currentQuestionIndex];
+      document.getElementById('current-question').textContent = currentQuestionIndex + 1;
+      document.getElementById('question-text').textContent = q.q;
+      
+      const optionsContainer = document.getElementById('options-container');
+      optionsContainer.innerHTML = '';
+      
+      const feedback = document.getElementById('feedback');
+      feedback.classList.add('hidden');
+      
+      const nextBtn = document.getElementById('next-btn');
+      nextBtn.classList.add('hidden');
+      
+      q.options.forEach((opt, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn w-full text-left p-5 bg-white border-3 border-orange-300 text-orange-900 rounded-2xl font-bold text-base md:text-lg shadow-md hover:shadow-xl';
+        btn.innerHTML = `<span class="inline-block w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 text-white text-center leading-[3rem] mr-4 font-black text-xl shadow-md">${String.fromCharCode(65 + i)}</span>${opt}`;
+        btn.addEventListener('click', () => checkAnswer(i, q.answer));
+        optionsContainer.appendChild(btn);
+      });
+    }
+
+    // Check answer
+    function checkAnswer(selected, correct) {
+      const feedback = document.getElementById('feedback');
+      const buttons = document.querySelectorAll('#options-container button');
+      
+      buttons.forEach((b, i) => {
+        b.disabled = true;
+        b.classList.remove('option-btn');
+        if (i === correct) {
+          b.style.backgroundColor = '#d1fae5';
+          b.style.borderColor = '#10b981';
+          b.style.color = '#065f46';
+          b.style.boxShadow = '0 0 30px rgba(16, 185, 129, 0.6)';
+        } else if (i === selected) {
+          b.style.backgroundColor = '#fee2e2';
+          b.style.borderColor = '#ef4444';
+          b.style.color = '#991b1b';
+          b.style.boxShadow = '0 0 30px rgba(239, 68, 68, 0.6)';
+        } else {
+          b.style.opacity = '0.4';
+        }
+      });
+      
+      feedback.classList.remove('hidden');
+      
+      if (selected === correct) {
+        feedback.innerHTML = '✅ CORRECT!';
+        feedback.style.color = '#10b981';
+        feedback.style.textShadow = '0 0 20px rgba(16, 185, 129, 0.8)';
+        correctAnswers++;
+        revealPixelsForCorrectAnswer();
+        updateProgress();
+      } else {
+        feedback.innerHTML = '❌ INCORRECT';
+        feedback.style.color = '#ef4444';
+        feedback.style.textShadow = '0 0 20px rgba(239, 68, 68, 0.8)';
+      }
+      
+      document.getElementById('next-btn').classList.remove('hidden');
+    }
+
+    // Reveal pixels for correct answer
+    function revealPixelsForCorrectAnswer() {
+      const totalNonBackgroundPixels = hiddenPixels.length + revealedPixels.size;
+      const pixelsPerQuestion = Math.ceil(totalNonBackgroundPixels / 20);
+      const pixelsToReveal = Math.min(pixelsPerQuestion, hiddenPixels.length);
+      
+      for (let i = 0; i < pixelsToReveal; i++) {
+        if (hiddenPixels.length === 0) break;
+        
+        const pixelData = hiddenPixels.pop();
+        const pixelKey = `${pixelData.row}-${pixelData.col}`;
+        
+        if (!revealedPixels.has(pixelKey)) {
+          revealedPixels.add(pixelKey);
+          
+          setTimeout(() => {
+            const pixel = document.querySelector(`[data-row="${pixelData.row}"][data-col="${pixelData.col}"]`);
+            if (pixel) {
+              pixel.style.backgroundColor = colorMap[pixelData.color];
+              pixel.innerHTML = '';
+              pixel.classList.add('revealed');
+            }
+          }, i * 40);
+        }
+      }
+    }
+
+    // Update progress
+    function updateProgress() {
+      const percentage = (correctAnswers / 20) * 100;
+      document.getElementById('progress-bar').style.width = `${percentage}%`;
+      document.getElementById('progress-text').textContent = `${correctAnswers} / 20`;
+    }
+
+    // Next question
+    function nextQuestion() {
+      currentQuestionIndex++;
+      if (currentQuestionIndex >= 20) {
+        revealAllRemainingPixels();
+        setTimeout(() => showCompletion(), hiddenPixels.length * 30 + 500);
+      } else {
+        displayQuestion();
+      }
+    }
+
+    // Reveal all remaining pixels
+    function revealAllRemainingPixels() {
+      hiddenPixels.forEach((pixelData, i) => {
+        setTimeout(() => {
+          const pixel = document.querySelector(`[data-row="${pixelData.row}"][data-col="${pixelData.col}"]`);
+          if (pixel) {
+            pixel.style.backgroundColor = colorMap[pixelData.color];
+            pixel.innerHTML = '';
+            pixel.classList.add('revealed');
+          }
+        }, i * 20);
+      });
+    }
+
+    // Show completion
+    function showCompletion() {
+      document.getElementById('completion-modal').classList.remove('hidden');
+    }
+
+    // Restart quiz
+    function restartQuiz() {
+      currentQuestionIndex = 0;
+      correctAnswers = 0;
+      revealedPixels.clear();
+      hiddenPixels = [];
+      
+      document.getElementById('completion-modal').classList.add('hidden');
+      
+      const canvas = document.getElementById('pixel-canvas');
+      canvas.innerHTML = '';
+      createPixelCanvas();
+      collectHiddenPixels();
+      updateProgress();
+      displayQuestion();
+    }
+
+    init();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9c243142306a16ee',t:'MTc2OTEzODgxNi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
