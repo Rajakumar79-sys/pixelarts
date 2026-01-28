@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChemLab: Match & Identify</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Quicksand:wght@400;600&family=Fira+Code:wght@500&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- VISUAL THEME --- */
+        :root {
+            --neon-blue: #38bdf8;
+            --neon-green: #34d399;
+            --neon-purple: #a78bfa;
+            --glass-bg: rgba(15, 23, 42, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background-color: #020617;
+            color: #f1f5f9;
+            overflow: hidden;
+            /* Lab Background */
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(56, 189, 248, 0.08) 0%, transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(16, 185, 129, 0.08) 0%, transparent 25%),
+                linear-gradient(rgba(2, 6, 23, 0.9), rgba(2, 6, 23, 0.95)),
+                url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23475569' fill-opacity='0.15'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            user-select: none;
+        }
+
+        .font-sci { font-family: 'Orbitron', sans-serif; }
+        .font-code { font-family: 'Fira Code', monospace; }
+
+        /* --- COMPONENTS --- */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .btn-action {
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-action:hover { transform: translateY(-2px); box-shadow: 0 0 15px rgba(56, 189, 248, 0.3); }
+        .btn-action:active { transform: translateY(0); scale: 0.98; }
+
+        /* --- DRAG & DROP --- */
+        .molecule-card {
+            cursor: grab;
+            transition: transform 0.2s, background-color 0.2s;
+            touch-action: none;
+        }
+        .molecule-card:active { cursor: grabbing; transform: scale(1.05); z-index: 50; }
+        .molecule-card.dragging { opacity: 0.5; }
+        
+        .drop-zone { transition: all 0.3s ease; }
+        .drop-zone.drag-over { background-color: rgba(56, 189, 248, 0.2); border-color: var(--neon-blue); }
+
+        /* --- UTILITY --- */
+        .hidden-screen { display: none !important; }
+        
+        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- MUSIC VISUALIZER ANIMATION (Simple CSS) --- */
+        .music-bar {
+            width: 4px;
+            background: var(--neon-blue);
+            animation: equalize 1s infinite;
+        }
+        @keyframes equalize { 0% {height: 5px;} 50% {height: 20px;} 100% {height: 5px;} }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col relative overflow-hidden">
+
+    <!-- AUDIO: Melodious Background -->
+    <audio id="bg-music" loop>
+        <!-- Relaxing melodic loop -->
+        <source src="https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf87a.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- MUSIC CONTROLS -->
+    <button onclick="toggleMusic()" id="music-btn" class="fixed top-4 right-4 z-50 glass-panel p-3 rounded-full hover:bg-white/10 text-slate-400 transition-colors border-0 flex items-center gap-2">
+        <div class="flex gap-1 items-end h-4 hidden" id="music-viz">
+            <div class="music-bar" style="animation-delay: 0s"></div>
+            <div class="music-bar" style="animation-delay: 0.2s"></div>
+            <div class="music-bar" style="animation-delay: 0.4s"></div>
+        </div>
+        <span id="music-text">🔇 Audio Off</span>
+    </button>
+
+    <!-- ================= 1. HOME SCREEN ================= -->
+    <section id="home-screen" class="flex-grow flex flex-col items-center justify-center fade-in relative z-10 px-4">
+        <div class="text-center mb-10">
+            <div class="text-6xl mb-4 animate-pulse">⚗️</div>
+            <h1 class="font-sci text-5xl md:text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 mb-2 drop-shadow-lg">
+                BIO-SYNTH
+            </h1>
+            <p class="text-slate-400 text-lg tracking-widest uppercase">Organic Chemistry Challenge</p>
+        </div>
+
+        <div class="flex gap-4 w-full max-w-md mb-12">
+            <button onclick="showRegistration()" class="btn-action flex-1 bg-gradient-to-r from-blue-600 to-emerald-600 text-white font-bold py-4 rounded-xl shadow-lg border-t border-white/20 text-xl tracking-wider">
+                START
+            </button>
+            <button onclick="exitGame()" class="btn-action flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-4 rounded-xl border border-slate-600 text-xl tracking-wider">
+                EXIT
+            </button>
+        </div>
+
+        <!-- Leaderboard Preview -->
+        <div class="glass-panel w-full max-w-md rounded-2xl p-6 border-t border-white/10">
+            <h3 class="font-sci text-center text-emerald-400 text-sm mb-4 tracking-widest border-b border-white/10 pb-2">TOP SCIENTISTS</h3>
+            <div id="leaderboard-list" class="space-y-2 max-h-32 overflow-y-auto text-sm font-code">
+                <!-- Data Injected Here -->
+                <div class="text-center text-slate-500 italic">No data recorded.</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================= 2. REGISTRATION ================= -->
+    <div id="registration-modal" class="hidden-screen fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="glass-panel p-8 rounded-2xl max-w-md w-full text-center border-t-4 border-blue-500 fade-in">
+            <h2 class="font-sci text-2xl text-white mb-2">ACCESS CONTROL</h2>
+            <p class="text-slate-400 text-sm mb-6">Identify yourself to proceed.</p>
+            
+            <input type="text" id="player-name" placeholder="Enter Codename" maxlength="10"
+                   class="w-full bg-slate-900/50 border border-slate-600 rounded-xl px-4 py-3 text-white text-center text-xl focus:outline-none focus:border-blue-500 mb-6 font-code uppercase">
+            
+            <div class="flex gap-4">
+                <button onclick="submitRegistration()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl">CONFIRM</button>
+                <button onclick="goHome()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold py-3 rounded-xl">ABORT</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= 3. LEVEL SELECT ================= -->
+    <section id="level-screen" class="hidden-screen h-full flex flex-col items-center justify-center fade-in relative z-10 px-4">
+        <h2 class="font-sci text-3xl text-white mb-2">SELECT DIFFICULTY</h2>
+        <p class="text-slate-400 text-sm mb-8">Agent: <span id="display-name" class="text-blue-400 font-bold font-code">Unknown</span></p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl">
+            <!-- Beginner -->
+            <button onclick="initLevel('beginner')" class="glass-panel group p-6 rounded-2xl hover:bg-emerald-900/20 border-l-4 border-emerald-500 text-left btn-action">
+                <div class="text-emerald-400 font-bold text-xl font-sci mb-2">BEGINNER</div>
+                <div class="text-slate-400 text-xs mb-4">Standard Time. Simple Molecules.</div>
+                <div class="font-code text-white bg-emerald-900/40 inline-block px-2 py-1 rounded">⏱ 60s</div>
+            </button>
+
+            <!-- Amateur -->
+            <button onclick="initLevel('amateur')" class="glass-panel group p-6 rounded-2xl hover:bg-amber-900/20 border-l-4 border-amber-500 text-left btn-action">
+                <div class="text-amber-400 font-bold text-xl font-sci mb-2">AMATEUR</div>
+                <div class="text-slate-400 text-xs mb-4">Reduced Time. Faster Pacing.</div>
+                <div class="font-code text-white bg-amber-900/40 inline-block px-2 py-1 rounded">⏱ 45s</div>
+            </button>
+
+            <!-- Professional -->
+            <button onclick="initLevel('professional')" class="glass-panel group p-6 rounded-2xl hover:bg-rose-900/20 border-l-4 border-rose-500 text-left btn-action">
+                <div class="text-rose-400 font-bold text-xl font-sci mb-2">PROFESSIONAL</div>
+                <div class="text-slate-400 text-xs mb-4">Critical Time. Maximum Score.</div>
+                <div class="font-code text-white bg-rose-900/40 inline-block px-2 py-1 rounded">⏱ 30s</div>
+            </button>
+        </div>
+
+        <button onclick="goHome()" class="mt-12 text-slate-500 hover:text-white flex items-center gap-2 text-sm uppercase font-bold tracking-widest">
+            <span>←</span> Return to Base
+        </button>
+    </section>
+
+    <!-- ================= 4. MATCHING GAME ================= -->
+    <section id="game-screen" class="hidden-screen h-full flex flex-col p-4 relative z-10">
+        <!-- HUD -->
+        <header class="flex justify-between items-center mb-4 glass-panel p-3 rounded-xl">
+            <button onclick="confirmBack()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-1 rounded text-xs font-bold border border-slate-600">BACK</button>
+            <div class="flex gap-6 font-code text-xl">
+                <div class="text-blue-400">⏱ <span id="timer-display">00</span></div>
+                <div class="text-emerald-400">✓ <span id="score-display">0/0</span></div>
+            </div>
+            <div class="w-12"></div>
+        </header>
+
+        <!-- Board -->
+        <div class="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4 h-full overflow-hidden">
+            <!-- Sources -->
+            <div class="glass-panel rounded-xl p-4 flex flex-col overflow-hidden">
+                <h3 class="text-blue-400 text-xs font-bold uppercase mb-3 border-b border-white/10 pb-2">Reagents (Formulas)</h3>
+                <div id="source-container" class="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto"></div>
+            </div>
+            <!-- Targets -->
+            <div class="glass-panel rounded-xl p-4 flex flex-col overflow-hidden">
+                <h3 class="text-emerald-400 text-xs font-bold uppercase mb-3 border-b border-white/10 pb-2">Homologous Series</h3>
+                <div id="target-container" class="space-y-2 overflow-y-auto"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================= 5. SUBJECTIVE QUIZ ================= -->
+    <section id="quiz-screen" class="hidden-screen h-full flex flex-col items-center justify-center p-4 fade-in relative z-10">
+        <div class="glass-panel w-full max-w-2xl p-8 rounded-3xl border-t-4 border-purple-500">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="font-sci text-2xl text-white">MOLECULAR ANALYSIS</h2>
+                <span class="bg-purple-900/50 text-purple-300 px-3 py-1 rounded text-xs font-code">Question <span id="quiz-num">1</span>/5</span>
+            </div>
+
+            <!-- Molecular Display (Text-based visual for subjective ID) -->
+            <div class="bg-slate-900 border border-slate-700 rounded-xl p-8 mb-6 text-center">
+                <div id="quiz-molecule" class="font-code text-3xl md:text-5xl text-blue-300 font-bold tracking-wider mb-2"></div>
+                <p class="text-slate-500 text-sm mt-4 italic">"Identify the primary functional group present."</p>
+            </div>
+
+            <!-- Subjective Input -->
+            <div class="mb-6">
+                <input type="text" id="quiz-input" placeholder="Type functional group name..." 
+                       class="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-3 text-white focus:border-purple-500 focus:outline-none font-code">
+                <p class="text-xs text-slate-500 mt-2">* Spelling counts. (e.g., 'Alcohol', 'Carboxyl')</p>
+            </div>
+
+            <button onclick="submitQuizAnswer()" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl transition-all">
+                SUBMIT ANALYSIS
+            </button>
+        </div>
+    </section>
+
+    <!-- ================= 6. RESULTS ================= -->
+    <div id="result-modal" class="hidden-screen fixed inset-0 z-50 bg-slate-950/95 flex items-center justify-center p-4 fade-in">
+        <div class="glass-panel p-8 rounded-2xl max-w-md w-full text-center border-t-4" id="result-border">
+            <div id="result-icon" class="text-6xl mb-4"></div>
+            <h2 id="result-title" class="text-3xl font-sci font-bold text-white mb-2"></h2>
+            
+            <div class="bg-slate-900/50 rounded-lg p-4 mb-6 border border-slate-700 text-sm">
+                <div class="flex justify-between mb-1 text-slate-400"><span>Match Score:</span> <span id="res-match" class="text-white">0</span></div>
+                <div class="flex justify-between mb-1 text-slate-400"><span>Time Bonus:</span> <span id="res-time" class="text-white">0</span></div>
+                <div class="flex justify-between mb-1 text-purple-400"><span>Quiz Score:</span> <span id="res-quiz" class="text-white">0</span></div>
+                <div class="h-px bg-slate-700 my-2"></div>
+                <div class="flex justify-between text-xl font-bold text-white"><span>TOTAL:</span> <span id="res-total">0</span></div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="restartGame()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl">RETRY</button>
+                <button onclick="goHome()" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-xl">HOME</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= 7. EXIT SCREEN ================= -->
+    <section id="exit-screen" class="hidden-screen fixed inset-0 z-50 bg-black flex flex-col items-center justify-center text-center px-4">
+        <h2 class="font-sci text-4xl text-slate-500 mb-4">SYSTEM OFFLINE</h2>
+        <p class="text-slate-600 text-sm mb-8">Secure connection terminated.</p>
+        <button onclick="location.reload()" class="text-blue-500 hover:text-blue-300 text-sm border-b border-blue-500 pb-1">Reconnect</button>
+    </section>
+
+    <!-- SCRIPTS -->
+    <script>
+        // --- DATA ---
+        const matchData = [
+            { id: 'oh', name: 'Alcohol', formula: '-OH' },
+            { id: 'cooh', name: 'Carboxylic Acid', formula: '-COOH' },
+            { id: 'cho', name: 'Aldehyde', formula: '-CHO' },
+            { id: 'co', name: 'Ketone', formula: '>C=O' },
+            { id: 'coo', name: 'Ester', formula: '-COO-' },
+            { id: 'nh2', name: 'Amine', formula: '-NH₂' },
+            { id: 'alkene', name: 'Alkene', formula: '>C=C<' },
+            { id: 'halo', name: 'Haloalkane', formula: '-X' }
+        ];
+
+        // Subjective Quiz Questions
+        const quizBank = [
+            { mol: "CH₃-CH₂-OH", answers: ["alcohol", "hydroxyl"] },
+            { mol: "CH₃-COOH", answers: ["carboxylic acid", "carboxyl"] },
+            { mol: "CH₂=CH₂", answers: ["alkene", "double bond"] },
+            { mol: "CH₃-CO-CH₃", answers: ["ketone", "carbonyl"] },
+            { mol: "CH₃-NH₂", answers: ["amine", "amino"] },
+            { mol: "CH₃-CHO", answers: ["aldehyde"] },
+            { mol: "CH₃-Cl", answers: ["haloalkane", "halogen", "halo"] },
+            { mol: "CH₃-COO-CH₃", answers: ["ester"] }
+        ];
+
+        const settings = {
+            beginner: { time: 60, multi: 1 },
+            amateur: { time: 45, multi: 1.5 },
+            professional: { time: 30, multi: 2 }
+        };
+
+        // --- STATE ---
+        let state = {
+            user: "Guest",
+            diff: "beginner",
+            timer: 0,
+            initialTime: 0,
+            matchScore: 0,
+            quizScore: 0,
+            quizIndex: 0,
+            quizPool: [],
+            interval: null,
+            dragId: null
+        };
+
+        // --- AUDIO ---
+        const music = document.getElementById('bg-music');
+        let musicOn = false;
+
+        function toggleMusic() {
+            musicOn = !musicOn; // Toggle intent immediately
+
+            if (!musicOn) {
+                music.pause();
+                document.getElementById('music-text').innerText = "🔇 Audio Off";
+                document.getElementById('music-viz').classList.add('hidden');
+                document.getElementById('music-btn').classList.remove('text-blue-300');
+            } else {
+                music.volume = 0.5;
+                const playPromise = music.play();
+                
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        // Only update UI if state is still on (user didn't toggle off while loading)
+                        if(musicOn) {
+                            document.getElementById('music-text').innerText = "🎵 Melodic On";
+                            document.getElementById('music-viz').classList.remove('hidden');
+                            document.getElementById('music-btn').classList.add('text-blue-300');
+                        } else {
+                            music.pause(); // Ensure it's paused if user toggled off
+                        }
+                    })
+                    .catch(error => {
+                        console.log("Audio play prevented:", error);
+                        // Reset UI/State if failed (e.g. permission error)
+                        // If AbortError (interrupted by pause), it's fine, we are likely in !musicOn state already
+                        if (error.name !== 'AbortError') {
+                             musicOn = false;
+                             document.getElementById('music-text').innerText = "🔇 Audio Off";
+                             document.getElementById('music-viz').classList.add('hidden');
+                             document.getElementById('music-btn').classList.remove('text-blue-300');
+                        }
+                    });
+                }
+            }
+        }
+
+        // --- NAVIGATION ---
+        function showScreen(id) {
+            document.querySelectorAll('section, #registration-modal, #result-modal').forEach(el => {
+                el.classList.add('hidden-screen');
+            });
+            const screen = document.getElementById(id);
+            screen.classList.remove('hidden-screen');
+            
+            // Re-trigger fade
+            screen.classList.remove('fade-in');
+            void screen.offsetWidth;
+            screen.classList.add('fade-in');
+
+            if(id === 'home-screen') updateLeaderboard();
+        }
+
+        function goHome() {
+            clearInterval(state.interval);
+            showScreen('home-screen');
+        }
+
+        function exitGame() {
+            music.pause();
+            showScreen('exit-screen');
+        }
+
+        function confirmBack() {
+            if(confirm("Abandon current session?")) goHome();
+        }
+
+        // --- REGISTRATION ---
+        function showRegistration() {
+            document.getElementById('player-name').value = '';
+            document.getElementById('registration-modal').classList.remove('hidden-screen');
+        }
+
+        function submitRegistration() {
+            const name = document.getElementById('player-name').value.trim();
+            if(name) {
+                state.user = name;
+                document.getElementById('display-name').innerText = name;
+                showScreen('level-screen');
+                if(!musicOn) toggleMusic(); // Auto start music
+            } else {
+                alert("Codename required.");
+            }
+        }
+
+        // --- GAMEPLAY: MATCHING ---
+        function initLevel(diff) {
+            state.diff = diff;
+            state.timer = settings[diff].time;
+            state.initialTime = settings[diff].time;
+            state.matchScore = 0;
+            state.quizScore = 0;
+            
+            showScreen('game-screen');
+            renderMatchingBoard();
+            startTimer();
+        }
+
+        function startTimer() {
+            document.getElementById('timer-display').innerText = state.timer;
+            state.interval = setInterval(() => {
+                state.timer--;
+                document.getElementById('timer-display').innerText = state.timer < 10 ? `0${state.timer}` : state.timer;
+                if(state.timer <= 0) {
+                    clearInterval(state.interval);
+                    startQuiz(); // Time up -> Move to Quiz
+                }
+            }, 1000);
+        }
+
+        function renderMatchingBoard() {
+            const src = document.getElementById('source-container');
+            const tgt = document.getElementById('target-container');
+            src.innerHTML = ''; 
+            tgt.innerHTML = '';
+            document.getElementById('score-display').innerText = `0/${matchData.length}`;
+
+            // Shuffle
+            const sources = [...matchData].sort(() => Math.random() - 0.5);
+            const targets = [...matchData].sort(() => Math.random() - 0.5);
+
+            sources.forEach(d => {
+                const el = document.createElement('div');
+                el.className = 'molecule-card bg-slate-800 border border-slate-600 p-3 rounded-lg text-center font-code text-blue-300 font-bold text-lg shadow-lg select-none';
+                el.innerText = d.formula;
+                el.draggable = true;
+                el.dataset.id = d.id;
+                el.addEventListener('dragstart', handleDragStart);
+                el.addEventListener('touchstart', handleTouchStart, {passive: false});
+                src.appendChild(el);
+            });
+
+            targets.forEach(d => {
+                const el = document.createElement('div');
+                el.className = 'drop-zone bg-slate-900/50 border-2 border-dashed border-slate-700 p-3 rounded-lg flex justify-between items-center transition-all h-16';
+                el.dataset.id = d.id;
+                el.innerHTML = `<span class="text-slate-300 font-bold text-sm">${d.name}</span> <div class="w-8 h-8 rounded-full border border-slate-600 opacity-20"></div>`;
+                el.addEventListener('dragover', handleDragOver);
+                el.addEventListener('drop', handleDrop);
+                tgt.appendChild(el);
+            });
+        }
+
+        // --- DRAG & DROP LOGIC ---
+        function handleDragStart(e) {
+            state.dragId = this.dataset.id;
+            this.classList.add('dragging');
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            this.classList.add('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+            if(this.dataset.filled) return;
+            
+            if(state.dragId === this.dataset.id) {
+                // Correct Match
+                this.className = 'bg-emerald-900/40 border-2 border-emerald-500 p-3 rounded-lg flex justify-between items-center h-16';
+                this.dataset.filled = "true";
+                const item = matchData.find(x => x.id === state.dragId);
+                this.innerHTML = `<span class="text-emerald-400 font-bold">${item.name}</span> <span class="bg-emerald-600 text-white px-2 py-1 rounded font-code text-sm">${item.formula}</span>`;
+                
+                // Remove source
+                document.querySelector(`.molecule-card[data-id="${state.dragId}"]`).remove();
+                
+                state.matchScore++;
+                document.getElementById('score-display').innerText = `${state.matchScore}/${matchData.length}`;
+
+                if(state.matchScore === matchData.length) {
+                    clearInterval(state.interval);
+                    setTimeout(startQuiz, 500);
+                }
+            }
+        }
+
+        // Mobile Touch Logic
+        let touchClone = null;
+        function handleTouchStart(e) {
+            e.preventDefault();
+            const t = e.touches[0];
+            state.dragId = this.dataset.id;
+            touchClone = this.cloneNode(true);
+            touchClone.style.position = 'fixed';
+            touchClone.style.width = this.offsetWidth + 'px';
+            touchClone.style.zIndex = '100';
+            touchClone.style.opacity = '0.8';
+            document.body.appendChild(touchClone);
+            moveTouch(t.pageX, t.pageY);
+            document.addEventListener('touchmove', onTouchMove, {passive: false});
+            document.addEventListener('touchend', onTouchEnd);
+        }
+        function moveTouch(x, y) {
+            if(touchClone) {
+                touchClone.style.left = (x - touchClone.offsetWidth/2) + 'px';
+                touchClone.style.top = (y - touchClone.offsetHeight/2) + 'px';
+            }
+        }
+        function onTouchMove(e) { e.preventDefault(); moveTouch(e.touches[0].pageX, e.touches[0].pageY); }
+        function onTouchEnd(e) {
+            const t = e.changedTouches[0];
+            touchClone.hidden = true;
+            const el = document.elementFromPoint(t.clientX, t.clientY);
+            touchClone.hidden = false;
+            const zone = el ? el.closest('.drop-zone') : null;
+            if(zone && !zone.dataset.filled && zone.dataset.id === state.dragId) {
+                // Manually trigger drop logic for touch
+                zone.className = 'bg-emerald-900/40 border-2 border-emerald-500 p-3 rounded-lg flex justify-between items-center h-16';
+                zone.dataset.filled = "true";
+                const item = matchData.find(x => x.id === state.dragId);
+                zone.innerHTML = `<span class="text-emerald-400 font-bold">${item.name}</span> <span class="bg-emerald-600 text-white px-2 py-1 rounded font-code text-sm">${item.formula}</span>`;
+                document.querySelector(`.molecule-card[data-id="${state.dragId}"]`).remove();
+                state.matchScore++;
+                document.getElementById('score-display').innerText = `${state.matchScore}/${matchData.length}`;
+                if(state.matchScore === matchData.length) {
+                    clearInterval(state.interval);
+                    setTimeout(startQuiz, 500);
+                }
+            }
+            touchClone.remove();
+            touchClone = null;
+            document.removeEventListener('touchmove', onTouchMove);
+            document.removeEventListener('touchend', onTouchEnd);
+        }
+
+        // --- GAMEPLAY: QUIZ (Subjective) ---
+        function startQuiz() {
+            // Select 5 random questions
+            state.quizPool = [...quizBank].sort(() => 0.5 - Math.random()).slice(0, 5);
+            state.quizIndex = 0;
+            state.quizScore = 0;
+            showScreen('quiz-screen');
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            if(state.quizIndex >= state.quizPool.length) {
+                finishGame();
+                return;
+            }
+            const q = state.quizPool[state.quizIndex];
+            document.getElementById('quiz-num').innerText = state.quizIndex + 1;
+            document.getElementById('quiz-molecule').innerText = q.mol;
+            const input = document.getElementById('quiz-input');
+            input.value = '';
+            input.focus();
+        }
+
+        function submitQuizAnswer() {
+            const input = document.getElementById('quiz-input').value.trim().toLowerCase();
+            const currentQ = state.quizPool[state.quizIndex];
+            
+            if(input === "") return;
+
+            // Check if input matches any acceptable answer
+            if(currentQ.answers.includes(input)) {
+                state.quizScore++;
+            }
+
+            state.quizIndex++;
+            renderQuestion();
+        }
+
+        function restartGame() {
+            initLevel(state.diff);
+        }
+
+        // --- RESULTS & LEADERBOARD ---
+        function finishGame() {
+            const modal = document.getElementById('result-modal');
+            modal.classList.remove('hidden-screen');
+            
+            // Calculate Scores
+            const timeBonus = state.timer * 5; // 5 pts per second left
+            const matchPoints = state.matchScore * 100;
+            const quizPoints = state.quizScore * 200; // Subjective worth more
+            const multiplier = settings[state.diff].multi;
+            
+            const total = Math.floor((matchPoints + timeBonus + quizPoints) * multiplier);
+            
+            // UI
+            const isWin = state.matchScore > 0;
+            document.getElementById('result-border').className = isWin ? 
+                "glass-panel p-8 rounded-2xl max-w-md w-full text-center border-t-4 border-emerald-500" :
+                "glass-panel p-8 rounded-2xl max-w-md w-full text-center border-t-4 border-rose-500";
+            
+            document.getElementById('result-icon').innerText = isWin ? "🏆" : "🧪";
+            document.getElementById('result-title').innerText = isWin ? "ANALYSIS COMPLETE" : "INCOMPLETE";
+            
+            document.getElementById('res-match').innerText = matchPoints;
+            document.getElementById('res-time').innerText = timeBonus;
+            document.getElementById('res-quiz').innerText = quizPoints;
+            document.getElementById('res-total').innerText = total;
+
+            saveScore(total);
+        }
+
+        function saveScore(score) {
+            const timeTaken = state.initialTime - state.timer; // Time spent on matching part
+            const entry = {
+                name: state.user,
+                score: score,
+                time: timeTaken,
+                diff: state.diff
+            };
+
+            let board = JSON.parse(localStorage.getItem('chemLeaderboard')) || [];
+            board.push(entry);
+            // Sort: High Score > Low Time
+            board.sort((a, b) => b.score - a.score || a.time - b.time);
+            localStorage.setItem('chemLeaderboard', JSON.stringify(board.slice(0, 10)));
+        }
+
+        function updateLeaderboard() {
+            const board = JSON.parse(localStorage.getItem('chemLeaderboard')) || [];
+            const list = document.getElementById('leaderboard-list');
+            list.innerHTML = '';
+            
+            if(board.length === 0) {
+                list.innerHTML = '<div class="text-center text-slate-500 italic">No data recorded.</div>';
+                return;
+            }
+
+            board.forEach((e, i) => {
+                const color = e.diff === 'professional' ? 'text-rose-400' : (e.diff === 'amateur' ? 'text-amber-400' : 'text-emerald-400');
+                const row = document.createElement('div');
+                row.className = "flex justify-between items-center bg-slate-800/50 p-2 rounded";
+                row.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span class="text-slate-500 font-bold w-4">${i+1}.</span>
+                        <span class="text-white">${e.name}</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="${color} uppercase text-xs font-bold">${e.diff.substring(0,3)}</span>
+                        <span class="text-blue-300 font-bold">${e.score}</span>
+                    </div>
+                `;
+                list.appendChild(row);
+            });
+        }
+
+        // Init
+        updateLeaderboard();
+    </script>
+</body>
+</html>
