@@ -1,0 +1,986 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Organic Chemistry Wheel of Fortune</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="/_sdk/data_sdk.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=Raleway:wght@400;600;700;800&amp;display=swap" rel="stylesheet">
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+    
+    .title-font {
+      font-family: 'Bebas Neue', sans-serif;
+      letter-spacing: 2px;
+    }
+    
+    .body-font {
+      font-family: 'Raleway', sans-serif;
+    }
+    
+    .wheel-container {
+      position: relative;
+      width: 320px;
+      height: 320px;
+      margin: 0 auto;
+    }
+    
+    .wheel {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      position: relative;
+      transition: transform 2.5s cubic-bezier(0.25, 0.1, 0.25, 1);
+      box-shadow: 0 0 0 14px #ff6b35, 0 0 0 18px #1a1a2e, 0 12px 45px rgba(0,0,0,0.6);
+    }
+    
+    .wheel-segment {
+      position: absolute;
+      width: 50%;
+      height: 50%;
+      transform-origin: 100% 100%;
+      clip-path: polygon(0 0, 100% 0, 100% 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 17px;
+    }
+    
+    .wheel-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 70px;
+      height: 70px;
+      background: linear-gradient(135deg, #ff6b35, #f7931e);
+      border-radius: 50%;
+      border: 5px solid #1a1a2e;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+      z-index: 10;
+    }
+    
+    .wheel-pointer {
+      position: absolute;
+      top: -25px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 22px solid transparent;
+      border-right: 22px solid transparent;
+      border-top: 45px solid #ff006e;
+      filter: drop-shadow(0 5px 8px rgba(0,0,0,0.4));
+      z-index: 20;
+    }
+    
+    .letter-box {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 58px;
+      margin: 3px;
+      border: 4px solid #4a00e0;
+      border-radius: 10px;
+      font-size: 30px;
+      font-weight: 900;
+      background: white;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+      transition: all 0.4s;
+    }
+    
+    .letter-box.revealed {
+      background: linear-gradient(135deg, #8e2de2, #4a00e0);
+      color: white;
+      transform: rotateY(360deg);
+      border-color: #4a00e0;
+      box-shadow: 0 6px 12px rgba(74, 0, 224, 0.4);
+    }
+    
+    .letter-box.space {
+      border: none;
+      background: transparent;
+      box-shadow: none;
+      width: 22px;
+    }
+    
+    .keyboard-btn {
+      width: 48px;
+      height: 48px;
+      margin: 3px;
+      border-radius: 10px;
+      font-weight: 900;
+      font-size: 19px;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+    }
+    
+    .keyboard-btn:hover:not(:disabled) {
+      transform: scale(1.12) translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+    }
+    
+    .keyboard-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+    
+    .pulse-ring {
+      animation: pulseRing 2s ease-in-out infinite;
+    }
+    
+    @keyframes pulseRing {
+      0%, 100% { box-shadow: 0 0 20px rgba(255, 107, 53, 0.4), 0 0 40px rgba(255, 107, 53, 0.2); }
+      50% { box-shadow: 0 0 35px rgba(255, 107, 53, 0.7), 0 0 60px rgba(255, 107, 53, 0.4); }
+    }
+    
+    .pop-in {
+      animation: popIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+    
+    @keyframes popIn {
+      0% { transform: scale(0) rotate(-15deg); opacity: 0; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+    
+    .shake {
+      animation: shake 0.5s;
+    }
+    
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-12px); }
+      40%, 80% { transform: translateX(12px); }
+    }
+    
+    .slide-up {
+      animation: slideUp 0.4s ease-out;
+    }
+    
+    @keyframes slideUp {
+      from { transform: translateY(30px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    
+    .confetti {
+      position: fixed;
+      width: 12px;
+      height: 12px;
+      animation: confettiFall 3s ease-out forwards;
+    }
+    
+    @keyframes confettiFall {
+      0% { transform: translateY(-100%) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+ </head>
+ <body class="h-full body-font">
+  <div id="app-wrapper" class="h-full w-full overflow-auto" style="background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);"><!-- Header -->
+   <header class="px-6 py-5" style="background: linear-gradient(135deg, rgba(26, 26, 46, 0.97), rgba(48, 43, 99, 0.97)); box-shadow: 0 4px 25px rgba(0,0,0,0.4); border-bottom: 5px solid #ff6b35;">
+    <div class="max-w-7xl mx-auto">
+     <div class="flex items-center justify-between flex-wrap gap-4">
+      <div class="flex items-center gap-4">
+       <div class="text-5xl">
+        🧪
+       </div>
+       <div>
+        <h1 id="game-title" class="title-font text-3xl md:text-4xl" style="color: #ff6b35; text-shadow: 0 3px 15px rgba(255, 107, 53, 0.6);">ORGANIC CHEMISTRY WHEEL</h1>
+        <p id="subtitle" class="text-sm font-bold tracking-wide" style="color: #00d9ff;">Advanced Nomenclature &amp; Reactions</p>
+       </div>
+      </div><button id="new-game-btn" class="px-7 py-3 rounded-xl font-bold text-sm transition-all hover:scale-105 tracking-wide" style="background: linear-gradient(135deg, #11998e, #38ef7d); color: white; box-shadow: 0 5px 15px rgba(17, 153, 142, 0.4);"> 🎮 NEW GAME </button>
+     </div>
+    </div>
+   </header><!-- Main Content -->
+   <main class="max-w-7xl mx-auto px-6 py-8"><!-- Welcome Screen -->
+    <div id="welcome-screen" class="text-center mb-8">
+     <div class="max-w-4xl mx-auto p-10 rounded-3xl pop-in" style="background: rgba(26, 26, 46, 0.95); box-shadow: 0 15px 50px rgba(0,0,0,0.5); border: 4px solid #ff6b35;">
+      <div class="text-8xl mb-6">
+       🎡
+      </div>
+      <h2 class="title-font text-5xl mb-6" style="color: #ff6b35; text-shadow: 0 2px 10px rgba(255, 107, 53, 0.5);">WHEEL OF CHEMISTRY</h2>
+      <p id="instructions" class="text-lg mb-8 leading-relaxed max-w-2xl mx-auto" style="color: #e0e0e0;">Master organic chemistry! Spin the wheel and solve puzzles on IUPAC nomenclature, reaction mechanisms, chemical tests, and rules named after famous chemists. Test your knowledge of alkenes, haloalkanes, and alcohols!</p>
+      <div class="grid md:grid-cols-5 gap-4 mb-8 max-w-4xl mx-auto">
+       <div class="p-4 rounded-xl" style="background: rgba(142, 45, 226, 0.2); border: 2px solid #8e2de2;">
+        <div class="text-3xl mb-2">
+         📝
+        </div>
+        <p class="text-xs font-bold" style="color: #00d9ff;">IUPAC Names</p>
+       </div>
+       <div class="p-4 rounded-xl" style="background: rgba(255, 107, 53, 0.2); border: 2px solid #ff6b35;">
+        <div class="text-3xl mb-2">
+         ⚗️
+        </div>
+        <p class="text-xs font-bold" style="color: #00d9ff;">Reactions</p>
+       </div>
+       <div class="p-4 rounded-xl" style="background: rgba(17, 153, 142, 0.2); border: 2px solid #11998e;">
+        <div class="text-3xl mb-2">
+         🔬
+        </div>
+        <p class="text-xs font-bold" style="color: #00d9ff;">Mechanisms</p>
+       </div>
+       <div class="p-4 rounded-xl" style="background: rgba(255, 0, 110, 0.2); border: 2px solid #ff006e;">
+        <div class="text-3xl mb-2">
+         🧫
+        </div>
+        <p class="text-xs font-bold" style="color: #00d9ff;">Chemical Tests</p>
+       </div>
+       <div class="p-4 rounded-xl" style="background: rgba(0, 217, 255, 0.2); border: 2px solid #00d9ff;">
+        <div class="text-3xl mb-2">
+         👨‍🔬
+        </div>
+        <p class="text-xs font-bold" style="color: #00d9ff;">Named Rules</p>
+       </div>
+      </div>
+      <div class="mb-8 max-w-2xl mx-auto">
+       <p class="text-sm font-bold tracking-wider mb-4" style="color: #ff6b35;">ENTER THREE PLAYER NAMES</p>
+       <div class="grid gap-4">
+        <div><label for="player1-input" class="block text-xs font-bold tracking-wider mb-2" style="color: #00d9ff;">PLAYER 1</label> <input id="player1-input" type="text" placeholder="Player 1 name..." class="w-full px-5 py-3 rounded-xl text-center font-semibold" style="background: rgba(48, 43, 99, 0.5); border: 3px solid #8e2de2; color: #fff;">
+        </div>
+        <div><label for="player2-input" class="block text-xs font-bold tracking-wider mb-2" style="color: #00d9ff;">PLAYER 2</label> <input id="player2-input" type="text" placeholder="Player 2 name..." class="w-full px-5 py-3 rounded-xl text-center font-semibold" style="background: rgba(48, 43, 99, 0.5); border: 3px solid #11998e; color: #fff;">
+        </div>
+        <div><label for="player3-input" class="block text-xs font-bold tracking-wider mb-2" style="color: #00d9ff;">PLAYER 3</label> <input id="player3-input" type="text" placeholder="Player 3 name..." class="w-full px-5 py-3 rounded-xl text-center font-semibold" style="background: rgba(48, 43, 99, 0.5); border: 3px solid #ff6b35; color: #fff;">
+        </div>
+       </div>
+      </div><button id="start-game-btn" class="px-12 py-5 rounded-xl font-bold text-xl transition-all hover:scale-105 tracking-wide" style="background: linear-gradient(135deg, #ff6b35, #f7931e); color: white; box-shadow: 0 8px 25px rgba(255, 107, 53, 0.5);"> 🚀 START GAME </button>
+     </div>
+    </div><!-- Game Screen -->
+    <div id="game-screen" class="hidden"><!-- Score Board -->
+     <div class="grid md:grid-cols-3 gap-6 mb-8">
+      <div class="p-6 rounded-2xl text-center slide-up" style="background: rgba(26, 26, 46, 0.9); border: 3px solid #8e2de2; box-shadow: 0 5px 20px rgba(142, 45, 226, 0.3);">
+       <p id="player1-name" class="text-sm font-bold mb-2 tracking-wider" style="color: #00d9ff;">PLAYER 1</p>
+       <p id="player1-score" class="title-font text-5xl" style="color: #8e2de2;">0</p>
+       <div id="player1-indicator" class="hidden mt-3 px-4 py-2 rounded-lg inline-block" style="background: rgba(142, 45, 226, 0.3); color: #8e2de2; font-size: 12px; font-weight: 800;">
+        ▶ YOUR TURN
+       </div>
+      </div>
+      <div class="p-6 rounded-2xl text-center slide-up" style="background: rgba(26, 26, 46, 0.9); border: 3px solid #11998e; box-shadow: 0 5px 20px rgba(17, 153, 142, 0.3); animation-delay: 0.1s;">
+       <p id="player2-name" class="text-sm font-bold mb-2 tracking-wider" style="color: #00d9ff;">PLAYER 2</p>
+       <p id="player2-score" class="title-font text-5xl" style="color: #11998e;">0</p>
+       <div id="player2-indicator" class="hidden mt-3 px-4 py-2 rounded-lg inline-block" style="background: rgba(17, 153, 142, 0.3); color: #11998e; font-size: 12px; font-weight: 800;">
+        ▶ YOUR TURN
+       </div>
+      </div>
+      <div class="p-6 rounded-2xl text-center slide-up" style="background: rgba(26, 26, 46, 0.9); border: 3px solid #ff6b35; box-shadow: 0 5px 20px rgba(255, 107, 53, 0.3); animation-delay: 0.2s;">
+       <p id="player3-name" class="text-sm font-bold mb-2 tracking-wider" style="color: #00d9ff;">PLAYER 3</p>
+       <p id="player3-score" class="title-font text-5xl" style="color: #ff6b35;">0</p>
+       <div id="player3-indicator" class="hidden mt-3 px-4 py-2 rounded-lg inline-block" style="background: rgba(255, 107, 53, 0.3); color: #ff6b35; font-size: 12px; font-weight: 800;">
+        ▶ YOUR TURN
+       </div>
+      </div>
+     </div><!-- Round Info -->
+     <div class="mb-8 text-center">
+      <div class="inline-block px-10 py-5 rounded-2xl" style="background: rgba(26, 26, 46, 0.95); border: 3px solid #ff006e; box-shadow: 0 5px 20px rgba(255, 0, 110, 0.3);">
+       <p class="text-xs font-bold mb-1 tracking-widest" style="color: #00d9ff;">ROUND <span id="round-number">1</span></p>
+       <p id="current-player-display" class="title-font text-2xl mb-3 tracking-wider" style="color: #ff006e;">PLAYER 1'S TURN</p>
+      </div>
+     </div><!-- Category Display -->
+     <div class="mb-8 text-center">
+      <div class="inline-block px-10 py-5 rounded-2xl pop-in" style="background: rgba(26, 26, 46, 0.95); border: 4px solid #ff006e; box-shadow: 0 8px 30px rgba(255, 0, 110, 0.4);">
+       <p class="text-xs font-bold mb-2 tracking-widest" style="color: #00d9ff;">CATEGORY</p>
+       <p id="category-display" class="title-font text-3xl tracking-wider" style="color: #ff006e;">IUPAC NOMENCLATURE</p>
+       <p id="category-hint" class="text-sm mt-2 font-semibold" style="color: #a0a0a0;">Hint: Name the compound</p>
+      </div>
+     </div><!-- Wheel Section -->
+     <div class="grid lg:grid-cols-2 gap-8 mb-8"><!-- Wheel -->
+      <div class="p-8 rounded-2xl" style="background: rgba(26, 26, 46, 0.95); border: 3px solid #302b63;">
+       <h3 class="title-font text-3xl text-center mb-6 tracking-wider" style="color: #ff6b35;">SPIN THE WHEEL</h3>
+       <div class="wheel-container">
+        <div class="wheel-pointer"></div>
+        <div id="wheel" class="wheel"><!-- Segments will be added by JavaScript -->
+        </div>
+        <div class="wheel-center"></div>
+       </div>
+       <div class="text-center mt-8"><button id="spin-btn" class="px-10 py-4 rounded-xl font-bold text-xl transition-all hover:scale-105 tracking-wide" style="background: linear-gradient(135deg, #ff6b35, #f7931e); color: white; box-shadow: 0 6px 20px rgba(255, 107, 53, 0.5);"> 🎡 SPIN WHEEL </button>
+       </div>
+       <div id="spin-result" class="hidden mt-6 p-5 rounded-xl text-center font-bold text-2xl"></div>
+      </div><!-- Puzzle Display -->
+      <div class="p-8 rounded-2xl" style="background: rgba(26, 26, 46, 0.95); border: 3px solid #302b63;">
+       <h3 class="title-font text-3xl text-center mb-6 tracking-wider" style="color: #8e2de2;">SOLVE THE PUZZLE</h3>
+       <div id="puzzle-display" class="text-center mb-6 flex flex-wrap justify-center min-h-[140px] items-center"><!-- Puzzle will be displayed here -->
+       </div>
+       <div class="text-center"><button id="solve-btn" class="px-10 py-4 rounded-xl font-bold text-lg transition-all hover:scale-105 mb-4 tracking-wide" style="background: linear-gradient(135deg, #11998e, #38ef7d); color: white; box-shadow: 0 5px 15px rgba(17, 153, 142, 0.4);"> ✓ SOLVE PUZZLE </button>
+        <div id="solve-input-container" class="hidden"><input id="solve-input" type="text" placeholder="Enter your answer..." class="w-full px-5 py-4 rounded-xl text-center font-semibold mb-3" style="background: rgba(48, 43, 99, 0.5); border: 3px solid #11998e; color: #fff;">
+         <div class="flex gap-3 justify-center"><button id="submit-solve-btn" class="px-8 py-3 rounded-lg font-bold tracking-wide" style="background: linear-gradient(135deg, #11998e, #38ef7d); color: white;"> Submit </button> <button id="cancel-solve-btn" class="px-8 py-3 rounded-lg font-bold tracking-wide" style="background: #64748b; color: white;"> Cancel </button>
+         </div>
+        </div>
+       </div>
+      </div>
+     </div><!-- Keyboard -->
+     <div class="p-8 rounded-2xl" style="background: rgba(26, 26, 46, 0.95); border: 3px solid #302b63;">
+      <h3 class="title-font text-2xl text-center mb-6 tracking-wider" style="color: #00d9ff;">SELECT A LETTER</h3>
+      <div id="keyboard" class="flex flex-wrap justify-center max-w-3xl mx-auto"><!-- Keyboard buttons will be added by JavaScript -->
+      </div>
+     </div><!-- Game Message -->
+     <div id="game-message" class="hidden mt-6 p-6 rounded-2xl text-center font-bold text-xl"></div>
+    </div>
+   </main>
+  </div>
+  <script>
+    const defaultConfig = {
+      game_title: 'ORGANIC CHEMISTRY WHEEL',
+      subtitle: 'Advanced Nomenclature & Reactions',
+      instructions: 'Master organic chemistry! Spin the wheel and solve puzzles on IUPAC nomenclature, reaction mechanisms, chemical tests, and rules named after famous chemists. Test your knowledge of alkenes, haloalkanes, and alcohols!',
+      spin_button: '🎡 SPIN WHEEL',
+      solve_button: '✓ SOLVE PUZZLE',
+      new_game_button: '🎮 NEW GAME',
+      primary_color: '#ff6b35',
+      secondary_color: '#11998e',
+      accent_color: '#8e2de2',
+      background_color: '#0f0c29',
+      text_color: '#e0e0e0'
+    };
+
+    // Enhanced puzzles organized by category - Malaysian Matriculation Syllabus
+    const puzzles = {
+      iupac_nomenclature: [
+        { phrase: 'TWO METHYLPROPANE', hint: 'Branched alkane, 4 carbons total', answer: 'TWO METHYLPROPANE' },
+        { phrase: 'PROPAN TWO OL', hint: 'Secondary alcohol with 3 carbons', answer: 'PROPAN TWO OL' },
+        { phrase: 'ONE BROMOPROPANE', hint: 'Primary haloalkane, 3 carbons', answer: 'ONE BROMOPROPANE' },
+        { phrase: 'TWO CHLORO TWO METHYLPROPANE', hint: 'Tertiary haloalkane, branched', answer: 'TWO CHLORO TWO METHYLPROPANE' },
+        { phrase: 'BUTAN TWO OL', hint: 'Secondary alcohol with 4 carbons', answer: 'BUTAN TWO OL' },
+        { phrase: 'TWO METHYLPROPAN TWO OL', hint: 'Tertiary alcohol, branched', answer: 'TWO METHYLPROPAN TWO OL' },
+        { phrase: 'PROP ONE ENE', hint: 'Alkene with double bond at C1', answer: 'PROP ONE ENE' },
+        { phrase: 'BUT TWO ENE', hint: 'Alkene with double bond at C2', answer: 'BUT TWO ENE' },
+        { phrase: 'TWO METHYLBUT TWO ENE', hint: 'Branched alkene, 5 carbons', answer: 'TWO METHYLBUT TWO ENE' },
+        { phrase: 'TWO BROMOBUTANE', hint: 'Secondary haloalkane, 4 carbons', answer: 'TWO BROMOBUTANE' }
+      ],
+      organic_reactions: [
+        { phrase: 'ELECTROPHILIC ADDITION', hint: 'Main reaction of alkenes', answer: 'ELECTROPHILIC ADDITION' },
+        { phrase: 'NUCLEOPHILIC SUBSTITUTION', hint: 'Main reaction of haloalkanes', answer: 'NUCLEOPHILIC SUBSTITUTION' },
+        { phrase: 'DEHYDRATION OF ALCOHOL', hint: 'Removes water to form alkene', answer: 'DEHYDRATION OF ALCOHOL' },
+        { phrase: 'OXIDATION OF ALCOHOL', hint: 'Forms aldehyde or ketone', answer: 'OXIDATION OF ALCOHOL' },
+        { phrase: 'ELIMINATION REACTION', hint: 'Forms double bond from haloalkane', answer: 'ELIMINATION REACTION' },
+        { phrase: 'HYDRATION OF ALKENE', hint: 'Adds water across double bond', answer: 'HYDRATION OF ALKENE' },
+        { phrase: 'HYDROGENATION', hint: 'Adds hydrogen to alkene', answer: 'HYDROGENATION' },
+        { phrase: 'HALOGENATION OF ALKENE', hint: 'Adds halogen to double bond', answer: 'HALOGENATION OF ALKENE' },
+        { phrase: 'COMBUSTION', hint: 'Burning in oxygen', answer: 'COMBUSTION' },
+        { phrase: 'ESTERIFICATION', hint: 'Alcohol reacts with carboxylic acid', answer: 'ESTERIFICATION' }
+      ],
+      mechanisms: [
+        { phrase: 'SN ONE MECHANISM', hint: 'Unimolecular nucleophilic substitution', answer: 'SN ONE MECHANISM' },
+        { phrase: 'SN TWO MECHANISM', hint: 'Bimolecular nucleophilic substitution', answer: 'SN TWO MECHANISM' },
+        { phrase: 'CARBOCATION INTERMEDIATE', hint: 'Positive carbon ion formed in SN1', answer: 'CARBOCATION INTERMEDIATE' },
+        { phrase: 'ELECTROPHILE', hint: 'Electron loving species', answer: 'ELECTROPHILE' },
+        { phrase: 'NUCLEOPHILE', hint: 'Nucleus loving species', answer: 'NUCLEOPHILE' },
+        { phrase: 'HETEROLYTIC FISSION', hint: 'Unequal breaking of covalent bond', answer: 'HETEROLYTIC FISSION' },
+        { phrase: 'ADDITION MECHANISM', hint: 'Alkene forms carbocation first', answer: 'ADDITION MECHANISM' }
+      ],
+      chemical_tests: [
+        { phrase: 'BROMINE WATER', hint: 'Brown to colourless with alkene', answer: 'BROMINE WATER' },
+        { phrase: 'ACIDIFIED POTASSIUM DICHROMATE', hint: 'Orange to green oxidises alcohol', answer: 'ACIDIFIED POTASSIUM DICHROMATE' },
+        { phrase: 'ACIDIFIED POTASSIUM MANGANATE', hint: 'Purple to colourless with alkene', answer: 'ACIDIFIED POTASSIUM MANGANATE' },
+        { phrase: 'LUCAS REAGENT', hint: 'Distinguishes primary secondary tertiary alcohols', answer: 'LUCAS REAGENT' },
+        { phrase: 'SODIUM METAL', hint: 'Effervescence with alcohol produces hydrogen', answer: 'SODIUM METAL' },
+        { phrase: 'SILVER NITRATE IN ETHANOL', hint: 'Tests for halide ions', answer: 'SILVER NITRATE IN ETHANOL' },
+        { phrase: 'IODOFORM TEST', hint: 'Yellow precipitate with methyl ketone', answer: 'IODOFORM TEST' }
+      ],
+      named_rules: [
+        { phrase: 'MARKOVNIKOV RULE', hint: 'Hydrogen adds to carbon with more hydrogen', answer: 'MARKOVNIKOV RULE' },
+        { phrase: 'SAYTZEFF RULE', hint: 'More substituted alkene is major product', answer: 'SAYTZEFF RULE' },
+        { phrase: 'ANTI MARKOVNIKOV ADDITION', hint: 'Opposite of Markovnikov with peroxide', answer: 'ANTI MARKOVNIKOV ADDITION' }
+      ]
+    };
+
+    // Wheel segments
+    const wheelSegments = [
+      { value: 100, color: '#ef4444', text: '100' },
+      { value: 500, color: '#f59e0b', text: '500' },
+      { value: 200, color: '#10b981', text: '200' },
+      { value: 'bankrupt', color: '#1f2937', text: 'BANKRUPT' },
+      { value: 300, color: '#3b82f6', text: '300' },
+      { value: 'lose', color: '#64748b', text: 'LOSE' },
+      { value: 250, color: '#8b5cf6', text: '250' },
+      { value: 750, color: '#ec4899', text: '750' },
+      { value: 150, color: '#06b6d4', text: '150' },
+      { value: 400, color: '#84cc16', text: '400' }
+    ];
+
+    // Game state
+    let players = [
+      { name: '', score: 0 },
+      { name: '', score: 0 },
+      { name: '', score: 0 }
+    ];
+    let currentPlayerIndex = 0;
+    let roundScore = 0;
+    let roundNumber = 1;
+    let currentPuzzle = null;
+    let currentCategory = '';
+    let revealedLetters = new Set();
+    let usedLetters = new Set();
+    let currentSpinValue = 0;
+    let isSpinning = false;
+    let canGuess = false;
+    let isLoading = false;
+
+    // Data SDK handler
+    const dataHandler = {
+      onDataChanged(data) {
+        // Game records stored successfully
+      }
+    };
+
+    // Initialize SDK
+    async function initializeApp() {
+      const result = await window.dataSdk.init(dataHandler);
+      if (!result.isOk) {
+        console.error('Failed to initialize data SDK');
+      }
+    }
+
+    // Create wheel
+    function createWheel() {
+      const wheel = document.getElementById('wheel');
+      const segmentAngle = 360 / wheelSegments.length;
+      
+      wheelSegments.forEach((segment, index) => {
+        const segmentDiv = document.createElement('div');
+        segmentDiv.className = 'wheel-segment';
+        segmentDiv.style.background = segment.color;
+        segmentDiv.style.transform = `rotate(${index * segmentAngle}deg) skewY(${-90 + segmentAngle}deg)`;
+        segmentDiv.innerHTML = `<span style="transform: skewY(${90 - segmentAngle}deg) rotate(${segmentAngle / 2}deg); color: white;">${segment.text}</span>`;
+        wheel.appendChild(segmentDiv);
+      });
+    }
+
+    // Create keyboard
+    function createKeyboard() {
+      const keyboard = document.getElementById('keyboard');
+      const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+      
+      letters.forEach(letter => {
+        const btn = document.createElement('button');
+        btn.className = 'keyboard-btn';
+        btn.textContent = letter;
+        btn.style.background = 'linear-gradient(135deg, #8e2de2, #4a00e0)';
+        btn.style.color = 'white';
+        btn.onclick = () => guessLetter(letter);
+        btn.id = `key-${letter}`;
+        keyboard.appendChild(btn);
+      });
+    }
+
+    // Start game
+    document.getElementById('start-game-btn').addEventListener('click', () => {
+      const player1 = document.getElementById('player1-input').value.trim();
+      const player2 = document.getElementById('player2-input').value.trim();
+      const player3 = document.getElementById('player3-input').value.trim();
+      
+      if (!player1 || !player2 || !player3) {
+        if (!player1) {
+          const input = document.getElementById('player1-input');
+          input.classList.add('shake');
+          input.style.borderColor = '#ef4444';
+          setTimeout(() => {
+            input.classList.remove('shake');
+            input.style.borderColor = '#8e2de2';
+          }, 500);
+        }
+        if (!player2) {
+          const input = document.getElementById('player2-input');
+          input.classList.add('shake');
+          input.style.borderColor = '#ef4444';
+          setTimeout(() => {
+            input.classList.remove('shake');
+            input.style.borderColor = '#11998e';
+          }, 500);
+        }
+        if (!player3) {
+          const input = document.getElementById('player3-input');
+          input.classList.add('shake');
+          input.style.borderColor = '#ef4444';
+          setTimeout(() => {
+            input.classList.remove('shake');
+            input.style.borderColor = '#ff6b35';
+          }, 500);
+        }
+        return;
+      }
+      
+      players[0].name = player1;
+      players[1].name = player2;
+      players[2].name = player3;
+      players[0].score = 0;
+      players[1].score = 0;
+      players[2].score = 0;
+      currentPlayerIndex = 0;
+      
+      document.getElementById('player1-name').textContent = player1.toUpperCase();
+      document.getElementById('player2-name').textContent = player2.toUpperCase();
+      document.getElementById('player3-name').textContent = player3.toUpperCase();
+      
+      document.getElementById('welcome-screen').classList.add('hidden');
+      document.getElementById('game-screen').classList.remove('hidden');
+      startNewRound();
+    });
+
+    // Start new round
+    function startNewRound() {
+      const categories = Object.keys(puzzles);
+      currentCategory = categories[Math.floor(Math.random() * categories.length)];
+      const categoryPuzzles = puzzles[currentCategory];
+      currentPuzzle = categoryPuzzles[Math.floor(Math.random() * categoryPuzzles.length)];
+      
+      const categoryNames = {
+        iupac_nomenclature: 'IUPAC NOMENCLATURE',
+        organic_reactions: 'ORGANIC REACTIONS',
+        mechanisms: 'REACTION MECHANISMS',
+        chemical_tests: 'CHEMICAL TESTS',
+        named_rules: 'NAMED RULES'
+      };
+      
+      document.getElementById('category-display').textContent = categoryNames[currentCategory];
+      document.getElementById('category-hint').textContent = `Hint: ${currentPuzzle.hint}`;
+      
+      revealedLetters = new Set();
+      usedLetters = new Set();
+      roundScore = 0;
+      currentSpinValue = 0;
+      canGuess = false;
+      
+      updatePlayerTurnDisplay();
+      updateScoreDisplay();
+      displayPuzzle();
+      resetKeyboard();
+      hideMessage();
+      document.getElementById('spin-result').classList.add('hidden');
+      document.getElementById('solve-input-container').classList.add('hidden');
+    }
+
+    // Update player turn display
+    function updatePlayerTurnDisplay() {
+      // Hide all indicators
+      document.getElementById('player1-indicator').classList.add('hidden');
+      document.getElementById('player2-indicator').classList.add('hidden');
+      document.getElementById('player3-indicator').classList.add('hidden');
+      
+      // Show current player indicator
+      const indicatorId = `player${currentPlayerIndex + 1}-indicator`;
+      document.getElementById(indicatorId).classList.remove('hidden');
+      
+      // Update current player display
+      const currentPlayer = players[currentPlayerIndex].name;
+      document.getElementById('current-player-display').textContent = `${currentPlayer.toUpperCase()}'S TURN`;
+    }
+
+    // Display puzzle
+    function displayPuzzle() {
+      const display = document.getElementById('puzzle-display');
+      display.innerHTML = '';
+      
+      const words = currentPuzzle.phrase.split(' ');
+      words.forEach((word, wordIndex) => {
+        const wordDiv = document.createElement('div');
+        wordDiv.style.display = 'inline-block';
+        wordDiv.style.margin = '4px';
+        
+        word.split('').forEach(letter => {
+          const box = document.createElement('div');
+          box.className = 'letter-box';
+          
+          if (revealedLetters.has(letter)) {
+            box.textContent = letter;
+            box.classList.add('revealed');
+          } else {
+            box.textContent = '';
+          }
+          
+          box.dataset.letter = letter;
+          wordDiv.appendChild(box);
+        });
+        
+        display.appendChild(wordDiv);
+        
+        if (wordIndex < words.length - 1) {
+          const space = document.createElement('div');
+          space.className = 'letter-box space';
+          display.appendChild(space);
+        }
+      });
+    }
+
+    // Spin wheel
+    document.getElementById('spin-btn').addEventListener('click', () => {
+      if (isSpinning || canGuess) return;
+      
+      isSpinning = true;
+      canGuess = false;
+      const wheel = document.getElementById('wheel');
+      const spinBtn = document.getElementById('spin-btn');
+      spinBtn.disabled = true;
+      spinBtn.style.opacity = '0.5';
+      
+      const randomSpin = 1440 + Math.random() * 720;
+      const segmentAngle = 360 / wheelSegments.length;
+      const landedIndex = Math.floor(((randomSpin % 360) / segmentAngle)) % wheelSegments.length;
+      const landedSegment = wheelSegments[landedIndex];
+      
+      wheel.style.transform = `rotate(${randomSpin}deg)`;
+      
+      setTimeout(() => {
+        isSpinning = false;
+        spinBtn.disabled = false;
+        spinBtn.style.opacity = '1';
+        
+        const resultDiv = document.getElementById('spin-result');
+        resultDiv.classList.remove('hidden');
+        resultDiv.classList.add('pop-in');
+        
+        if (landedSegment.value === 'bankrupt') {
+          resultDiv.style.background = 'linear-gradient(135deg, #1f2937, #111827)';
+          resultDiv.style.color = 'white';
+          resultDiv.textContent = '💀 BANKRUPT! Lost all round points!';
+          roundScore = 0;
+          updateScoreDisplay();
+          setTimeout(() => {
+            resultDiv.classList.add('hidden');
+            nextPlayer();
+          }, 2500);
+        } else if (landedSegment.value === 'lose') {
+          resultDiv.style.background = 'linear-gradient(135deg, #64748b, #475569)';
+          resultDiv.style.color = 'white';
+          resultDiv.textContent = '😔 LOSE A TURN!';
+          setTimeout(() => {
+            resultDiv.classList.add('hidden');
+            nextPlayer();
+          }, 2500);
+        } else {
+          currentSpinValue = landedSegment.value;
+          resultDiv.style.background = 'linear-gradient(135deg, #ff6b35, #f7931e)';
+          resultDiv.style.color = 'white';
+          resultDiv.textContent = `🎉 You spun ${currentSpinValue} points!`;
+          canGuess = true;
+        }
+      }, 2500);
+    });
+
+    // Next player
+    function nextPlayer() {
+      currentPlayerIndex = (currentPlayerIndex + 1) % 3;
+      roundScore = 0;
+      currentSpinValue = 0;
+      canGuess = false;
+      updatePlayerTurnDisplay();
+      updateScoreDisplay();
+    }
+
+    // Guess letter
+    function guessLetter(letter) {
+      if (!canGuess || usedLetters.has(letter)) return;
+      
+      usedLetters.add(letter);
+      const btn = document.getElementById(`key-${letter}`);
+      btn.disabled = true;
+      
+      const phrase = currentPuzzle.phrase;
+      const count = (phrase.match(new RegExp(letter, 'g')) || []).length;
+      
+      if (count > 0) {
+        revealedLetters.add(letter);
+        const points = currentSpinValue * count;
+        roundScore += points;
+        updateScoreDisplay();
+        displayPuzzle();
+        
+        showMessage(`✅ Found ${count} ${letter}'s! +${points} points`, '#11998e');
+        
+        if (checkPuzzleSolved()) {
+          setTimeout(() => puzzleSolved(), 1000);
+        }
+      } else {
+        btn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+        showMessage(`❌ No ${letter}'s in the puzzle!`, '#ef4444');
+        setTimeout(() => {
+          nextPlayer();
+        }, 2000);
+      }
+      
+      canGuess = false;
+      currentSpinValue = 0;
+    }
+
+    // Check if puzzle is solved
+    function checkPuzzleSolved() {
+      const phrase = currentPuzzle.phrase.replace(/\s/g, '');
+      for (let letter of phrase) {
+        if (!revealedLetters.has(letter)) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    // Solve puzzle button
+    document.getElementById('solve-btn').addEventListener('click', () => {
+      document.getElementById('solve-input-container').classList.remove('hidden');
+      document.getElementById('solve-input').focus();
+    });
+
+    document.getElementById('submit-solve-btn').addEventListener('click', () => {
+      const answer = document.getElementById('solve-input').value.trim().toUpperCase();
+      if (answer === currentPuzzle.answer) {
+        puzzleSolved();
+      } else {
+        showMessage('❌ Incorrect answer! Try again.', '#ef4444');
+        document.getElementById('solve-input').value = '';
+        document.getElementById('solve-input').classList.add('shake');
+        setTimeout(() => {
+          document.getElementById('solve-input').classList.remove('shake');
+        }, 500);
+      }
+    });
+
+    document.getElementById('cancel-solve-btn').addEventListener('click', () => {
+      document.getElementById('solve-input-container').classList.add('hidden');
+      document.getElementById('solve-input').value = '';
+    });
+
+    // Puzzle solved
+    async function puzzleSolved() {
+      if (isLoading) return;
+      isLoading = true;
+      
+      players[currentPlayerIndex].score += roundScore;
+      updateScoreDisplay();
+      
+      // Reveal all letters
+      currentPuzzle.phrase.split('').forEach(letter => {
+        if (letter !== ' ') revealedLetters.add(letter);
+      });
+      displayPuzzle();
+      
+      const winnerName = players[currentPlayerIndex].name;
+      showMessage(`🎉 ${winnerName.toUpperCase()} SOLVED IT! +${roundScore} points!`, '#11998e');
+      launchConfetti();
+      
+      // Check if game should end (after 10 rounds)
+      if (roundNumber >= 10) {
+        setTimeout(() => endGame(), 3000);
+        isLoading = false;
+        return;
+      }
+      
+      // Save to database
+      const result = await window.dataSdk.create({
+        game_id: `game-${Date.now()}`,
+        player_one: players[0].name,
+        player_two: players[1].name,
+        player_three: players[2].name,
+        round_number: roundNumber,
+        category: currentCategory,
+        puzzle_solved: currentPuzzle.phrase,
+        winner: winnerName,
+        final_scores: `${players[0].score},${players[1].score},${players[2].score}`,
+        timestamp: Date.now()
+      });
+      
+      if (!result.isOk) {
+        console.error('Failed to save game data');
+      }
+      
+      isLoading = false;
+      
+      setTimeout(() => {
+        roundNumber++;
+        document.getElementById('round-number').textContent = roundNumber;
+        currentPlayerIndex = roundNumber % 3;
+        startNewRound();
+      }, 3500);
+    }
+
+    // End game
+    async function endGame() {
+      // Find winner
+      let maxScore = Math.max(players[0].score, players[1].score, players[2].score);
+      let winner = players.find(p => p.score === maxScore);
+      
+      // Create winner modal
+      const modal = document.createElement('div');
+      modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; display: flex; align-items: center; justify-content: center;';
+      modal.innerHTML = `
+        <div class="pop-in" style="background: rgba(26, 26, 46, 0.98); padding: 60px; rounded: 30px; text-align: center; border: 5px solid #ff6b35; border-radius: 30px; max-width: 600px;">
+          <div style="font-size: 80px; margin-bottom: 20px;">🏆</div>
+          <h2 class="title-font" style="font-size: 48px; color: #ff6b35; margin-bottom: 20px;">GAME OVER!</h2>
+          <p class="title-font" style="font-size: 36px; color: #00d9ff; margin-bottom: 30px;">${winner.name.toUpperCase()} WINS!</p>
+          <div style="margin-bottom: 30px;">
+            <p style="color: #e0e0e0; font-size: 24px; font-weight: 700; margin-bottom: 10px;">${players[0].name}: ${players[0].score} pts</p>
+            <p style="color: #e0e0e0; font-size: 24px; font-weight: 700; margin-bottom: 10px;">${players[1].name}: ${players[1].score} pts</p>
+            <p style="color: #e0e0e0; font-size: 24px; font-weight: 700;">${players[2].name}: ${players[2].score} pts</p>
+          </div>
+          <button id="restart-game" style="padding: 20px 40px; background: linear-gradient(135deg, #ff6b35, #f7931e); color: white; border: none; border-radius: 15px; font-size: 20px; font-weight: 800; cursor: pointer;">
+            🎮 PLAY AGAIN
+          </button>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      
+      document.getElementById('restart-game').addEventListener('click', () => {
+        modal.remove();
+        document.getElementById('game-screen').classList.add('hidden');
+        document.getElementById('welcome-screen').classList.remove('hidden');
+        players = [
+          { name: '', score: 0 },
+          { name: '', score: 0 },
+          { name: '', score: 0 }
+        ];
+        currentPlayerIndex = 0;
+        roundNumber = 1;
+        document.getElementById('round-number').textContent = roundNumber;
+      });
+    }
+
+    // Update score display
+    function updateScoreDisplay() {
+      document.getElementById('player1-score').textContent = players[0].score;
+      document.getElementById('player2-score').textContent = players[1].score;
+      document.getElementById('player3-score').textContent = players[2].score;
+    }
+
+    // Reset keyboard
+    function resetKeyboard() {
+      const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+      letters.forEach(letter => {
+        const btn = document.getElementById(`key-${letter}`);
+        btn.disabled = false;
+        btn.style.background = 'linear-gradient(135deg, #8e2de2, #4a00e0)';
+      });
+    }
+
+    // Show message
+    function showMessage(text, color) {
+      const msg = document.getElementById('game-message');
+      msg.textContent = text;
+      msg.style.background = color;
+      msg.style.color = 'white';
+      msg.classList.remove('hidden');
+      msg.classList.add('pop-in');
+    }
+
+    // Hide message
+    function hideMessage() {
+      const msg = document.getElementById('game-message');
+      msg.classList.add('hidden');
+    }
+
+    // Confetti
+    function launchConfetti() {
+      const colors = ['#ff6b35', '#f7931e', '#11998e', '#8e2de2', '#ff006e', '#00d9ff'];
+      for (let i = 0; i < 60; i++) {
+        setTimeout(() => {
+          const confetti = document.createElement('div');
+          confetti.className = 'confetti';
+          confetti.style.left = `${Math.random() * 100}%`;
+          confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+          confetti.style.animationDelay = `${Math.random() * 0.5}s`;
+          document.body.appendChild(confetti);
+          setTimeout(() => confetti.remove(), 3000);
+        }, i * 30);
+      }
+    }
+
+    // New game
+    document.getElementById('new-game-btn').addEventListener('click', () => {
+      players[0].score = 0;
+      players[1].score = 0;
+      players[2].score = 0;
+      roundScore = 0;
+      roundNumber = 1;
+      currentPlayerIndex = 0;
+      document.getElementById('round-number').textContent = roundNumber;
+      updateScoreDisplay();
+      startNewRound();
+    });
+
+    // Element SDK
+    async function onConfigChange(config) {
+      document.getElementById('game-title').textContent = config.game_title || defaultConfig.game_title;
+      document.getElementById('subtitle').textContent = config.subtitle || defaultConfig.subtitle;
+      document.getElementById('instructions').textContent = config.instructions || defaultConfig.instructions;
+      
+      const spinBtn = document.getElementById('spin-btn');
+      if (spinBtn) {
+        spinBtn.textContent = config.spin_button || defaultConfig.spin_button;
+      }
+      
+      const solveBtn = document.getElementById('solve-btn');
+      if (solveBtn) {
+        solveBtn.textContent = config.solve_button || defaultConfig.solve_button;
+      }
+      
+      const newGameBtn = document.getElementById('new-game-btn');
+      if (newGameBtn) {
+        newGameBtn.textContent = config.new_game_button || defaultConfig.new_game_button;
+      }
+    }
+
+    function mapToCapabilities(config) {
+      return {
+        recolorables: [
+          {
+            get: () => config.background_color || defaultConfig.background_color,
+            set: (value) => { config.background_color = value; window.elementSdk.setConfig({ background_color: value }); }
+          },
+          {
+            get: () => config.primary_color || defaultConfig.primary_color,
+            set: (value) => { config.primary_color = value; window.elementSdk.setConfig({ primary_color: value }); }
+          },
+          {
+            get: () => config.secondary_color || defaultConfig.secondary_color,
+            set: (value) => { config.secondary_color = value; window.elementSdk.setConfig({ secondary_color: value }); }
+          },
+          {
+            get: () => config.accent_color || defaultConfig.accent_color,
+            set: (value) => { config.accent_color = value; window.elementSdk.setConfig({ accent_color: value }); }
+          },
+          {
+            get: () => config.text_color || defaultConfig.text_color,
+            set: (value) => { config.text_color = value; window.elementSdk.setConfig({ text_color: value }); }
+          }
+        ],
+        borderables: [],
+        fontEditable: undefined,
+        fontSizeable: undefined
+      };
+    }
+
+    function mapToEditPanelValues(config) {
+      return new Map([
+        ['game_title', config.game_title || defaultConfig.game_title],
+        ['subtitle', config.subtitle || defaultConfig.subtitle],
+        ['instructions', config.instructions || defaultConfig.instructions],
+        ['spin_button', config.spin_button || defaultConfig.spin_button],
+        ['solve_button', config.solve_button || defaultConfig.solve_button],
+        ['new_game_button', config.new_game_button || defaultConfig.new_game_button]
+      ]);
+    }
+
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange,
+        mapToCapabilities,
+        mapToEditPanelValues
+      });
+    } else {
+      onConfigChange(defaultConfig);
+    }
+
+    // Initialize
+    initializeApp();
+    createWheel();
+    createKeyboard();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9c5f56fc549b55a9',t:'MTc2OTc1OTAyMS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
